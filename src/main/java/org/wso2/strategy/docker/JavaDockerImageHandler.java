@@ -24,8 +24,6 @@ import org.wso2.strategy.docker.interfaces.IDockerImageHandler;
 import org.wso2.strategy.miscellaneous.exception.CarbonKernelHandlerException;
 import org.wso2.strategy.miscellaneous.helper.CarbonKernelHandlerHelper;
 
-import java.io.File;
-import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -47,42 +45,41 @@ public class JavaDockerImageHandler implements IDockerImageHandler {
         }
     }
 
-    public String buildImage(String creator, String deployedArtifactName, String version, Path artifactPath)
+    public String buildImage(String creator, String dockerArtifactName, String version, Path dockerFilePath)
             throws CarbonKernelHandlerException {
         String dockerImageName = CarbonKernelHandlerHelper
-                .generateImageIdentifier(creator, deployedArtifactName, version);
+                .generateImageIdentifier(creator, dockerArtifactName, version);
         try {
             if (dockerImageName != null) {
-                /*
-                sets up the environment by creating a new Dockerfile for the specified
-                web-artifact deployment
-                 */
-                setupEnvironment(artifactPath);
                 if (LOG.isDebugEnabled()) {
-                    LOG.debug(String.format("Creating a new Apache Tomcat based "
-                                    + "Docker image for the [web-artifact] %s web artifact.",
-                            artifactPath.getFileName()));
+                    LOG.debug(String.format("Creating a new Docker image %s.", dockerImageName));
                 }
-                dockerClient.build(artifactPath.getParent(), dockerImageName);
-                if (LOG.isDebugEnabled()) {
-                    LOG.debug(String.format("Created a new Apache Tomcat based "
-                                    + "Docker image for the [web-artifact] %s web artifact.",
-                            artifactPath.getFileName()));
+                String freshImageId = dockerClient.build(dockerFilePath.getParent(), dockerImageName);
+                if (freshImageId != null) {
+                    if (LOG.isDebugEnabled()) {
+                        LOG.debug(
+                                String.format("Created a new Docker image %s [id]:%s", dockerImageName, freshImageId));
+                    }
+                } else {
+                    String message = String
+                            .format("Could not create the Docker image [docker-image]: %s.", dockerImageName);
+                    LOG.error(message);
+                    throw new CarbonKernelHandlerException(message);
                 }
             }
         } catch (Exception exception) {
-            String message = String.format("Could not create the Docker image[docker-image]: %s.", dockerImageName);
+            String message = String.format("Could not create the Docker image [docker-image]: %s.", dockerImageName);
             LOG.error(message, exception);
             throw new CarbonKernelHandlerException(message, exception);
         }
         return dockerImageName;
     }
 
-    public List<Image> getExistingImages(String creator, String deployedArtifactName, String version)
+    public List<Image> getExistingImages(String creator, String dockerArtifactName, String version)
             throws CarbonKernelHandlerException {
         List<Image> matchingImageList = new ArrayList<>();
         String imageIdentifier = CarbonKernelHandlerHelper
-                .generateImageIdentifier(creator, deployedArtifactName, version);
+                .generateImageIdentifier(creator, dockerArtifactName, version);
         try {
             if (imageIdentifier != null) {
                 List<Image> tempImages = dockerClient.listImages();
@@ -104,12 +101,12 @@ public class JavaDockerImageHandler implements IDockerImageHandler {
         return matchingImageList;
     }
 
-    public String removeImage(String creator, String deployedArtifactName, String version)
+    public String removeImage(String creator, String dockerArtifactName, String version)
             throws CarbonKernelHandlerException {
         String dockerImageName = CarbonKernelHandlerHelper
-                .generateImageIdentifier(creator, deployedArtifactName, version);
+                .generateImageIdentifier(creator, dockerArtifactName, version);
         try {
-            List<Image> existingImages = getExistingImages(creator, deployedArtifactName, version);
+            List<Image> existingImages = getExistingImages(creator, dockerArtifactName, version);
             if ((dockerImageName != null) && (existingImages.size() > 0)) {
                 if (LOG.isDebugEnabled()) {
                     LOG.debug(String.format("Removing the Docker image [docker-image]: %s.", dockerImageName));
@@ -120,62 +117,10 @@ public class JavaDockerImageHandler implements IDockerImageHandler {
                 }
             }
         } catch (Exception exception) {
-            String message = String
-                    .format("Could not remove the docker image[docker-image]: " + "%s.", dockerImageName);
+            String message = String.format("Could not remove the docker image [docker-image]: %s.", dockerImageName);
             LOG.error(message, exception);
             throw new CarbonKernelHandlerException(message, exception);
         }
         return dockerImageName;
     }
-
-    /**
-     * utility method which sets up the environment required to build up an
-     * Apache Tomcat based Docker image for the selected web-artifact
-     *
-     * @param filePath path to the web-artifact
-     * @throws IOException
-     */
-    private void setupEnvironment(Path filePath) throws IOException, SecurityException {
-        Path parentDirectory = filePath.getParent();
-        File dockerFile;
-        if (parentDirectory != null) {
-            String parentDirectoryPath = parentDirectory.toString();
-            dockerFile = new File(parentDirectoryPath + File.separator + "Dockerfile");
-        } else {
-            dockerFile = new File("Dockerfile");
-        }
-        boolean exists = dockerFile.exists();
-        if (!exists) {
-            boolean created = dockerFile.createNewFile();
-            if (created) {
-                if (LOG.isDebugEnabled()) {
-                    LOG.debug("New Dockerfile created for " + filePath.toString() + ".");
-                }
-            }
-        }
-        // get base Apache Tomcat Dockerfile content from the application's file
-        List<String> baseDockerFileContent;
-        baseDockerFileContent = getTomcatDockerFileContent();
-        /*
-            set up a new Dockerfile with the specified WAR file deploying command in the Apache
-            Tomcat server
-        */
-        baseDockerFileContent.add(2, "ADD " + filePath.getFileName().toString() + " /usr/local/tomcat/webapps/");
-        CarbonKernelHandlerHelper.writeToFile(dockerFile, baseDockerFileContent);
-    }
-
-    /**
-     * returns a String list of base content to be written to the Apache
-     * Tomcat based Dockerfile
-     *
-     * @return base content to be written to the Apache Tomcat based Dockerfile
-     */
-    private List<String> getTomcatDockerFileContent() {
-        List<String> baseContent = new ArrayList<>();
-        baseContent.add("FROM tomcat");
-        baseContent.add("MAINTAINER user");
-        baseContent.add("CMD [\"catalina.sh\", \"run\"]");
-        return baseContent;
-    }
 }
-

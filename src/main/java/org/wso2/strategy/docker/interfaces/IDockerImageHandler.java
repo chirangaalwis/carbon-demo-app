@@ -28,29 +28,29 @@ public interface IDockerImageHandler {
     /**
      * builds up a Docker image which deploys the specified artifact
      *
-     * @param creator              name of the person deploying the web artifact
-     * @param deployedArtifactName name of the artifact to be deployed
-     * @param version              Docker Image version
-     * @param artifactPath         artifact to be deployed
+     * @param creator            name of the person deploying the web artifact
+     * @param dockerArtifactName name of the artifact to be deployed
+     * @param version            Docker Image version
+     * @param dockerFilePath     file system path to the Dockerfile to be built
      * @return unique identifier of the created Docker Image.
      * if at least one of either the creator or artifact name equals null, null is returned
      * @throws CarbonKernelHandlerException
      */
-    String buildImage(String creator, String deployedArtifactName, String version, Path artifactPath)
+    String buildImage(String creator, String dockerArtifactName, String version, Path dockerFilePath)
             throws CarbonKernelHandlerException;
 
     /**
      * returns a list images from existing Docker images specified by the creator,
      * image name and image version
      *
-     * @param creator              name of the person deploying the web artifact
-     * @param deployedArtifactName name of the artifact deployed
-     * @param version              Docker Image version
+     * @param creator            name of the person deploying the web artifact
+     * @param dockerArtifactName name of the artifact to be deployed
+     * @param version            Docker Image version
      * @return a list images from existing Docker images specified by the creator,
      * image name and image version
      * @throws CarbonKernelHandlerException
      */
-    List<Image> getExistingImages(String creator, String deployedArtifactName, String version)
+    List<Image> getExistingImages(String creator, String dockerArtifactName, String version)
             throws CarbonKernelHandlerException;
 
     /**
