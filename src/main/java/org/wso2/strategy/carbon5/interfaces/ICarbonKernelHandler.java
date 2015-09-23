@@ -32,6 +32,15 @@ public interface ICarbonKernelHandler {
     boolean deploy(String tenant, String buildVersion, int replicas) throws CarbonKernelHandlerException;
 
     /**
+     * make a roll update to the newly deployed kernel build
+     *
+     * @param tenant name of the tenant
+     * @return true if successfully updated, else false
+     * @throws CarbonKernelHandlerException
+     */
+    boolean rollUpdate(String tenant, String buildVersion) throws CarbonKernelHandlerException;
+
+    /**
      * scale the number of kernel replicas running
      *
      * @param tenant       name of the tenant
@@ -49,15 +58,6 @@ public interface ICarbonKernelHandler {
      * @throws CarbonKernelHandlerException
      */
     int getNoOfReplicas(String tenant) throws CarbonKernelHandlerException;
-
-    /**
-     * utility method which returns a list of kernel build versions under the specified tenant
-     *
-     * @param tenant tenant which deploys the web artifact
-     * @return a list of kernel build versions under the specified tenant
-     * @throws CarbonKernelHandlerException
-     */
-    List<String> listExistingBuildArtifacts(String tenant) throws CarbonKernelHandlerException;
 
     /**
      * returns a String message of access IPs for the currently running service by the specified tenant

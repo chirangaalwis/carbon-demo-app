@@ -21,7 +21,7 @@ public class KubernetesConstantsExtended {
     public static final String LABEL_NAME = "name";
     public static final int NODE_PORT_LOWER_LIMIT = 30000;
     public static final int NODE_PORT_UPPER_LIMIT = 32767;
-    public static final int TOMCAT_DOCKER_CONTAINER_EXPOSED_PORT = 8080;
+    public static final int CONTAINER_EXPOSED_PORT = 9443;
     public static final String NODE_PORT_ALLOCATION_FILENAME = "NodePortAllocation.txt";
     public static final String SESSION_AFFINITY_CONFIG = "None";
     public static final String SERVICE_PORT_NAME = "http-1";

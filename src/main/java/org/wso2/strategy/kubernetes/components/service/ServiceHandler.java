@@ -57,7 +57,7 @@ public class ServiceHandler implements IServiceHandler {
                     }
                     client.createService(serviceId, serviceName, nodePortValue, KubernetesConstants.NODE_PORT,
                             KubernetesConstantsExtended.SERVICE_PORT_NAME,
-                            KubernetesConstantsExtended.TOMCAT_DOCKER_CONTAINER_EXPOSED_PORT,
+                            KubernetesConstantsExtended.CONTAINER_EXPOSED_PORT,
                             KubernetesConstantsExtended.SESSION_AFFINITY_CONFIG);
                     if (LOG.isDebugEnabled()) {
                         String message = String
@@ -105,12 +105,12 @@ public class ServiceHandler implements IServiceHandler {
         return service;
     }
 
-    public String getClusterIP(String serviceId, String appName) throws CarbonKernelHandlerException {
+    public String getClusterIP(String serviceId) throws CarbonKernelHandlerException {
         if (serviceId != null) {
             try {
                 Service service = client.getService(serviceId);
                 if (service != null) {
-                    return KubernetesHelper.getServiceURL(service) + "/" + appName;
+                    return KubernetesHelper.getServiceURL(service);
                 } else {
                     return "ClusterIP not available.";
                 }
@@ -126,7 +126,7 @@ public class ServiceHandler implements IServiceHandler {
         }
     }
 
-    public String getNodePortIP(String serviceId, String appName) throws CarbonKernelHandlerException {
+    public String getNodePortIP(String serviceId) throws CarbonKernelHandlerException {
         if (serviceId != null) {
             int nodePort;
             try {
@@ -138,8 +138,7 @@ public class ServiceHandler implements IServiceHandler {
                     nodePort = -1;
                 }
                 if (nodePort != -1) {
-                    return String
-                            .format("http://%s:%d/%s", InetAddress.getLocalHost().getHostName(), nodePort, appName);
+                    return String.format("http://%s:%d", InetAddress.getLocalHost().getHostName(), nodePort);
                 } else {
                     return "NodePortIP not available";
                 }

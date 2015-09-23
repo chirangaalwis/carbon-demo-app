@@ -41,21 +41,19 @@ public interface IServiceHandler {
      * returns access URL String value of the Cluster IP service specified by the service ID
      *
      * @param serviceId id of the service
-     * @param appName   name of the web artifact deployed
      * @return access URL String value of the Cluster IP service specified by the service ID
      * @throws CarbonKernelHandlerException
      */
-    String getClusterIP(String serviceId, String appName) throws CarbonKernelHandlerException;
+    String getClusterIP(String serviceId) throws CarbonKernelHandlerException;
 
     /**
      * returns access URL String value of the NodePort service most recently created
      *
      * @param serviceId id of the service
-     * @param appName   name of the web artifact deployed
      * @return access URL String value of the NodePort service most recently created
      * @throws CarbonKernelHandlerException
      */
-    String getNodePortIP(String serviceId, String appName) throws CarbonKernelHandlerException;
+    String getNodePortIP(String serviceId) throws CarbonKernelHandlerException;
 
     /**
      * removes the specified Kubernetes service
