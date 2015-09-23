@@ -18,7 +18,8 @@ package org.wso2.strategy.carbon5;
 public class CarbonKernelHandlerConstants {
     protected static final String ARTIFACT_NAME = "carbon";
     protected static final String DOCKERFILE_PATH = "Dockerfile";
-    protected static final String CARBON_KERNEL_VERSION = "5.0.0-m4";
+    protected static final String CARBON_KERNEL_ARTIFACT = "wso2carbon-kernel-5.0.0-m4";
+    protected static final String CARBON_KERNEL_ARTIFACT_VERSION = "5.0.0-m4";
     protected static final int IMAGE_BUILD_DELAY_IN_MILLISECONDS = 5000;
     protected static final int POD_SCALE_DELAY_IN_MILLISECONDS = 3000;
 }

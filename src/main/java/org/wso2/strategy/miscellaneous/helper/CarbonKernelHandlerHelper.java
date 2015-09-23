@@ -18,7 +18,6 @@ package org.wso2.strategy.miscellaneous.helper;
 import org.wso2.strategy.miscellaneous.io.FileOutputThread;
 
 import java.io.File;
-import java.nio.file.Path;
 import java.util.List;
 
 /**
@@ -62,76 +61,6 @@ public class CarbonKernelHandlerHelper {
             imageIdentifier = null;
         }
         return imageIdentifier;
-    }
-
-    /**
-     * utility method which returns the name of the web artifact specified
-     *
-     * @param artifactPath path to the web artifact
-     * @return the name of the web artifact specified
-     */
-    public static String getArtifactName(Path artifactPath) {
-        String artifactFileName = artifactPath.getFileName().toString();
-        return artifactFileName.substring(0, artifactFileName.length() - 4);
-    }
-
-    /**
-     * compares two web artifact version builds and indicates which version should come before and after
-     *
-     * @param buildIdentifierOne web artifact version build one
-     * @param buildIdentifierTwo web artifact version build two
-     * @return indicates which version should come before and after
-     */
-    public static int compareBuildVersions(String buildIdentifierOne, String buildIdentifierTwo) {
-        int result;
-        String[] buildIdentifierOneTenantSplit = buildIdentifierOne.split(":");
-        String[] buildIdentifierTwoTenantSplit = buildIdentifierTwo.split(":");
-        String[] buildIdentifierOneIdentifierSplit = buildIdentifierOneTenantSplit[1].split("-");
-        String[] buildIdentifierTwoIdentifierSplit = buildIdentifierTwoTenantSplit[1].split("-");
-        int repoIndex = 0;
-        int versionIndex = 0;
-        int yearIndex = 1;
-        int monthIndex = 2;
-        int dayIndex = 3;
-        String identifierOne =
-                buildIdentifierOneTenantSplit[repoIndex] + ":" + buildIdentifierOneIdentifierSplit[versionIndex] +
-                        "-" + buildIdentifierOneIdentifierSplit[yearIndex] + "-"
-                        + buildIdentifierOneIdentifierSplit[monthIndex] +
-                        "-" + buildIdentifierOneIdentifierSplit[dayIndex];
-        String identifierTwo =
-                buildIdentifierTwoTenantSplit[repoIndex] + ":" + buildIdentifierTwoIdentifierSplit[versionIndex] +
-                        "-" + buildIdentifierTwoIdentifierSplit[yearIndex] + "-"
-                        + buildIdentifierTwoIdentifierSplit[monthIndex] +
-                        "-" + buildIdentifierTwoIdentifierSplit[dayIndex];
-
-        if (identifierOne.compareTo(identifierTwo) < 0) {
-            result = -1;
-        } else if (identifierOne.compareTo(identifierTwo) > 0) {
-            result = 1;
-        } else {
-            long identifierOneTime = Long.parseLong(buildIdentifierOneIdentifierSplit[4]);
-            long identifierTwoTime = Long.parseLong(buildIdentifierTwoIdentifierSplit[4]);
-            if (identifierOneTime < identifierTwoTime) {
-                result = -1;
-            } else if (identifierOneTime > identifierTwoTime) {
-                result = 1;
-            } else {
-                result = 0;
-            }
-        }
-        return result;
-    }
-
-    /**
-     * a utility method which returns the version component of the Docker Image specified
-     *
-     * @param dockerImageName the Docker Image
-     * @return the version component of the Docker Image specified
-     */
-    public static String getDockerImageVersion(String dockerImageName) {
-        String[] imageComponents = dockerImageName.split(":");
-        final int versionIndex = 1;
-        return imageComponents[versionIndex];
     }
 
     /**

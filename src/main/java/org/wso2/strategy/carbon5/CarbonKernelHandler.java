@@ -29,6 +29,7 @@ import org.wso2.strategy.miscellaneous.exception.CarbonKernelHandlerException;
 import org.wso2.strategy.miscellaneous.helper.CarbonKernelHandlerHelper;
 import org.wso2.strategy.miscellaneous.io.FileOutputThread;
 
+import java.io.File;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
@@ -46,14 +47,15 @@ public class CarbonKernelHandler implements ICarbonKernelHandler {
         serviceHandler = new ServiceHandler(kubernetesEndpointURL);
     }
 
-    public boolean deploy(String tenant, String buildVersion, int replicas) throws CarbonKernelHandlerException {
-        String componentName = CarbonKernelHandlerHelper.generateKubernetesComponentIdentifier(tenant, buildVersion);
+    public boolean deploy(String tenant, int replicas) throws CarbonKernelHandlerException {
+        String componentName = CarbonKernelHandlerHelper.generateKubernetesComponentIdentifier(tenant,
+                CarbonKernelHandlerConstants.CARBON_KERNEL_ARTIFACT_VERSION);
         try {
             if (replicationControllerHandler.getReplicationController(componentName) == null) {
-                if (imageBuilder.getExistingImages(tenant, CarbonKernelHandlerConstants.ARTIFACT_NAME, buildVersion)
-                        .size() == 0) {
-                    String dockerImageName;
-                    dockerImageName = buildCarbonDockerImage(tenant, buildVersion);
+                if (imageBuilder.getExistingImages(tenant, CarbonKernelHandlerConstants.ARTIFACT_NAME,
+                        CarbonKernelHandlerConstants.CARBON_KERNEL_ARTIFACT_VERSION).size() == 0) {
+                    String dockerImageName = buildCarbonDockerImage(tenant,
+                            CarbonKernelHandlerConstants.CARBON_KERNEL_ARTIFACT_VERSION);
                     Thread.sleep(CarbonKernelHandlerConstants.IMAGE_BUILD_DELAY_IN_MILLISECONDS);
                     replicationControllerHandler
                             .createReplicationController(componentName, componentName, dockerImageName, replicas);
@@ -66,20 +68,22 @@ public class CarbonKernelHandler implements ICarbonKernelHandler {
                 return false;
             }
         } catch (Exception exception) {
-            String message = "Failed to deploy carbon-kernel.";
+            String message = "Failed to deploy WSO2-Carbon kernel.";
             LOG.error(message, exception);
             throw new CarbonKernelHandlerException(message, exception);
         }
     }
 
-    public boolean rollUpdate(String tenant, String buildVersion) throws CarbonKernelHandlerException {
+    public boolean rollUpdate(String tenant) throws CarbonKernelHandlerException {
         try {
             String componentName = CarbonKernelHandlerHelper
                     .generateKubernetesComponentIdentifier(tenant, CarbonKernelHandlerConstants.ARTIFACT_NAME);
-            // TODO: check for the running status of replication controller
-            if ((imageBuilder.getExistingImages(tenant, CarbonKernelHandlerConstants.ARTIFACT_NAME, buildVersion).size()
-                    > 0)) {
-                String dockerImageName = buildCarbonDockerImage(tenant, buildVersion);
+            boolean artifactsExist = (imageBuilder.getExistingImages(tenant, CarbonKernelHandlerConstants.ARTIFACT_NAME,
+                    CarbonKernelHandlerConstants.CARBON_KERNEL_ARTIFACT_VERSION).size() > 0);
+            boolean deployed = (replicationControllerHandler.getReplicationController(componentName) != null);
+            if (artifactsExist && deployed) {
+                String dockerImageName = buildCarbonDockerImage(tenant,
+                        CarbonKernelHandlerConstants.CARBON_KERNEL_ARTIFACT_VERSION);
                 replicationControllerHandler.updateImage(componentName, dockerImageName);
                 int currentPodNumber = replicationControllerHandler.getNoOfReplicas(componentName);
                 scale(tenant, 0);
@@ -90,7 +94,7 @@ public class CarbonKernelHandler implements ICarbonKernelHandler {
                 return false;
             }
         } catch (Exception exception) {
-            String message = "Failed to update the running Carbon kernel.";
+            String message = "Failed to update the running WSO2-Carbon kernel.";
             LOG.error(message, exception);
             throw new CarbonKernelHandlerException(message, exception);
         }
@@ -136,7 +140,7 @@ public class CarbonKernelHandler implements ICarbonKernelHandler {
                 return false;
             }
         } catch (Exception exception) {
-            String message = "Failed to remove the running Carbon kernel.";
+            String message = "Failed to remove the running WSO2-Carbon kernel.";
             LOG.error(message, exception);
             throw new CarbonKernelHandlerException(message, exception);
         }
@@ -152,26 +156,32 @@ public class CarbonKernelHandler implements ICarbonKernelHandler {
                 dateTime.getYear() + "-" + dateTime.getMonthOfYear() + "-" + dateTime.getDayOfMonth() + "-" + dateTime
                         .getMillisOfDay();
         version += ("-" + now);
-        String dockerImage = imageBuilder.buildImage(tenant, CarbonKernelHandlerConstants.ARTIFACT_NAME, version,
+        return imageBuilder.buildImage(tenant, CarbonKernelHandlerConstants.ARTIFACT_NAME, version,
                 Paths.get(CarbonKernelHandlerConstants.DOCKERFILE_PATH));
-        return dockerImage;
     }
 
-    private List<String> setDockerFileContent() {
+    private List<String> setDockerFileContent() throws CarbonKernelHandlerException {
         List<String> dockerFileContent = new ArrayList<>();
-
-        dockerFileContent.add("FROM java:openjdk-8");
-        dockerFileContent.add("MAINTAINER dev@wso2.org");
-        dockerFileContent.add("ENV WSO2_SOFT_VER=" + CarbonKernelHandlerConstants.CARBON_KERNEL_VERSION);
-        dockerFileContent
-                .add("ADD wso2carbon-kernel-" + CarbonKernelHandlerConstants.CARBON_KERNEL_VERSION + ".zip /opt/");
-        dockerFileContent.add("RUN  \\\n\tmkdir -p /opt && \\\nunzip /opt/wso2carbon-kernel-$"
-                + CarbonKernelHandlerConstants.CARBON_KERNEL_VERSION + ".zip -d /opt && \\\nrm /opt/wso2carbon-kernel-$"
-                + CarbonKernelHandlerConstants.CARBON_KERNEL_VERSION + ".zip");
-        dockerFileContent.add("# Carbon https port\nEXPOSE 9443");
-        dockerFileContent.add("ENV JAVA_HOME=/usr");
-        dockerFileContent.add("CMD [\"/opt/wso2carbon-kernel-" + CarbonKernelHandlerConstants.CARBON_KERNEL_VERSION
-                + "/bin/wso2server.sh\"]");
+        try {
+            ClassLoader classLoader = getClass().getClassLoader();
+            File kernelArtifact = new File(
+                    classLoader.getResource(CarbonKernelHandlerConstants.CARBON_KERNEL_ARTIFACT + ".zip").getFile());
+            dockerFileContent.add("FROM java:openjdk-8");
+            dockerFileContent.add("MAINTAINER dev@wso2.org");
+            //        dockerFileContent.add("ENV WSO2_SOFT_VER=" + CarbonKernelHandlerConstants.CARBON_KERNEL_VERSION);
+            dockerFileContent.add("ADD " + kernelArtifact + " /opt/");
+            dockerFileContent.add("RUN  \\\n\tmkdir -p /opt && \\\nunzip /opt/"
+                    + CarbonKernelHandlerConstants.CARBON_KERNEL_ARTIFACT + ".zip -d /opt && \\\nrm /opt/"
+                    + CarbonKernelHandlerConstants.CARBON_KERNEL_ARTIFACT + ".zip");
+            dockerFileContent.add("# Carbon https port\nEXPOSE 9443");
+            dockerFileContent.add("ENV JAVA_HOME=/usr");
+            dockerFileContent.add("CMD [\"/opt/" + CarbonKernelHandlerConstants.CARBON_KERNEL_ARTIFACT
+                    + "/bin/wso2server.sh\"]");
+        } catch (Exception exception) {
+            String message = "Failed to load the WSO2-Carbon kernel artifact zip.";
+            LOG.error(message, exception);
+            throw new CarbonKernelHandlerException(message, exception);
+        }
 
         return dockerFileContent;
     }
