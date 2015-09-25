@@ -27,7 +27,6 @@ import org.wso2.strategy.kubernetes.components.service.ServiceHandler;
 import org.wso2.strategy.kubernetes.components.service.interfaces.IServiceHandler;
 import org.wso2.strategy.miscellaneous.exception.CarbonKernelHandlerException;
 import org.wso2.strategy.miscellaneous.helper.CarbonKernelHandlerHelper;
-import org.wso2.strategy.miscellaneous.io.FileOutputThread;
 
 import java.io.File;
 import java.nio.file.Paths;
@@ -48,8 +47,8 @@ public class CarbonKernelHandler implements ICarbonKernelHandler {
     }
 
     public boolean deploy(String tenant, int replicas) throws CarbonKernelHandlerException {
-        String componentName = CarbonKernelHandlerHelper.generateKubernetesComponentIdentifier(tenant,
-                CarbonKernelHandlerConstants.CARBON_KERNEL_ARTIFACT_VERSION);
+        String componentName = CarbonKernelHandlerHelper
+                .generateKubernetesComponentIdentifier(tenant, CarbonKernelHandlerConstants.ARTIFACT_NAME);
         try {
             if (replicationControllerHandler.getReplicationController(componentName) == null) {
                 if (imageBuilder.getExistingImages(tenant, CarbonKernelHandlerConstants.ARTIFACT_NAME,
@@ -148,9 +147,7 @@ public class CarbonKernelHandler implements ICarbonKernelHandler {
 
     private String buildCarbonDockerImage(String tenant, String version) throws CarbonKernelHandlerException {
         List<String> dockerFileContent = setDockerFileContent();
-        FileOutputThread outputThread = new FileOutputThread(CarbonKernelHandlerConstants.DOCKERFILE_PATH,
-                dockerFileContent);
-        outputThread.run();
+        CarbonKernelHandlerHelper.writeToFile(System.getProperty("user.dir") + CarbonKernelHandlerConstants.DOCKERFILE_PATH, dockerFileContent);
         DateTime dateTime = new DateTime();
         String now =
                 dateTime.getYear() + "-" + dateTime.getMonthOfYear() + "-" + dateTime.getDayOfMonth() + "-" + dateTime
@@ -163,9 +160,7 @@ public class CarbonKernelHandler implements ICarbonKernelHandler {
     private List<String> setDockerFileContent() throws CarbonKernelHandlerException {
         List<String> dockerFileContent = new ArrayList<>();
         try {
-            ClassLoader classLoader = getClass().getClassLoader();
-            File kernelArtifact = new File(
-                    classLoader.getResource(CarbonKernelHandlerConstants.CARBON_KERNEL_ARTIFACT + ".zip").getFile());
+            File kernelArtifact = new File(CarbonKernelHandlerConstants.CARBON_KERNEL_ARTIFACT + ".zip");
             dockerFileContent.add("FROM java:openjdk-8");
             dockerFileContent.add("MAINTAINER dev@wso2.org");
             //        dockerFileContent.add("ENV WSO2_SOFT_VER=" + CarbonKernelHandlerConstants.CARBON_KERNEL_VERSION);
@@ -175,10 +170,10 @@ public class CarbonKernelHandler implements ICarbonKernelHandler {
                     + CarbonKernelHandlerConstants.CARBON_KERNEL_ARTIFACT + ".zip");
             dockerFileContent.add("# Carbon https port\nEXPOSE 9443");
             dockerFileContent.add("ENV JAVA_HOME=/usr");
-            dockerFileContent.add("CMD [\"/opt/" + CarbonKernelHandlerConstants.CARBON_KERNEL_ARTIFACT
+            dockerFileContent.add("ENTRYPOINT [\"/opt/" + CarbonKernelHandlerConstants.CARBON_KERNEL_ARTIFACT
                     + "/bin/wso2server.sh\"]");
         } catch (Exception exception) {
-            String message = "Failed to load the WSO2-Carbon kernel artifact zip.";
+            String message = "Failed to create the WSO2-Carbon kernel artifact Docker Image.";
             LOG.error(message, exception);
             throw new CarbonKernelHandlerException(message, exception);
         }

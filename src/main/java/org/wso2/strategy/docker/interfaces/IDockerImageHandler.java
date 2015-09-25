@@ -28,11 +28,11 @@ public interface IDockerImageHandler {
     /**
      * builds up a Docker image which deploys the specified artifact
      *
-     * @param creator            name of the person deploying the web artifact
+     * @param creator            name of the person deploying the artifact
      * @param dockerArtifactName name of the artifact to be deployed
-     * @param version            Docker Image version
+     * @param version            Docker image version
      * @param dockerFilePath     file system path to the Dockerfile to be built
-     * @return unique identifier of the created Docker Image.
+     * @return unique identifier of the created Docker image.
      * if at least one of either the creator or artifact name equals null, null is returned
      * @throws CarbonKernelHandlerException
      */
@@ -43,9 +43,9 @@ public interface IDockerImageHandler {
      * returns a list images from existing Docker images specified by the creator,
      * image name and image version
      *
-     * @param creator            name of the person deploying the web artifact
+     * @param creator            name of the person deploying the artifact
      * @param dockerArtifactName name of the artifact to be deployed
-     * @param version            Docker Image version
+     * @param version            Docker image version
      * @return a list images from existing Docker images specified by the creator,
      * image name and image version
      * @throws CarbonKernelHandlerException
@@ -56,10 +56,10 @@ public interface IDockerImageHandler {
     /**
      * deletes the specified Docker image
      *
-     * @param creator              name of the person deploying the web artifact
+     * @param creator              name of the person deploying the artifact
      * @param deployedArtifactName name of the artifact deployed
-     * @param version              Docker Image version
-     * @return unique identifier of the deleted Docker Image
+     * @param version              Docker image version
+     * @return unique identifier of the deleted Docker image
      * @throws CarbonKernelHandlerException
      */
     String removeImage(String creator, String deployedArtifactName, String version) throws CarbonKernelHandlerException;

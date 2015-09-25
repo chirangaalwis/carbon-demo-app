@@ -37,11 +37,11 @@ public class JavaDockerImageHandler implements IDockerImageHandler {
 
     public JavaDockerImageHandler(String dockerEndpointURI) {
         if (LOG.isDebugEnabled()) {
-            LOG.debug("Creating new DockerClient.");
+            LOG.debug("Creating a new DockerClient.");
         }
         dockerClient = DefaultDockerClient.builder().uri(dockerEndpointURI).build();
         if (LOG.isDebugEnabled()) {
-            LOG.debug(String.format("Creating new DockerClient[docker-client]: %s.", dockerClient));
+            LOG.debug(String.format("Created a new DockerClient[docker-client]: %s.", dockerClient));
         }
     }
 

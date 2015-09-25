@@ -26,10 +26,6 @@ public class CarbonKernelHandlerException extends Exception {
         this.message = message;
     }
 
-    public CarbonKernelHandlerException(Exception exception) {
-        super(exception);
-    }
-
     public CarbonKernelHandlerException(String message) {
         super(message);
         this.message = message;

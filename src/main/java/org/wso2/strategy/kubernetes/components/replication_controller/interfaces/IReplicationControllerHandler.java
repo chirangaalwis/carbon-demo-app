@@ -25,13 +25,13 @@ public interface IReplicationControllerHandler {
     /**
      * creates a replication controller
      *
-     * @param controllerName        name of the replication controller
-     * @param podLabel              value for pod label
-     * @param tomcatDockerImageName Apache Tomcat based Docker Image name
-     * @param numberOfReplicas      number of pod replicas to be created
+     * @param controllerName   name of the replication controller
+     * @param podLabel         value for pod label
+     * @param dockerImageName  the name of the Docker image to be deployed
+     * @param numberOfReplicas number of pod replicas to be created
      * @throws CarbonKernelHandlerException
      */
-    void createReplicationController(String controllerName, String podLabel, String tomcatDockerImageName,
+    void createReplicationController(String controllerName, String podLabel, String dockerImageName,
             int numberOfReplicas) throws CarbonKernelHandlerException;
 
     /**

@@ -24,15 +24,15 @@ class FileOutput {
     private Formatter output;
 
     /**
-     * method takes a single String parameter specifying the name of the file on which the
+     * * method takes a single String parameter specifying the name of the file on which the
      * Formatter instance is to be used
      *
-     * @param fileName the name of the file on which the Formatter instance is to be used
+     * @param filePath the name of the file on which the Formatter instance is to be used
      * @throws FileNotFoundException
      * @throws SecurityException
      */
-    public void openFile(String fileName) throws FileNotFoundException, SecurityException {
-        output = new Formatter(fileName);
+    public void openFile(String filePath) throws FileNotFoundException, SecurityException {
+        output = new Formatter(filePath);
     }
 
     /**

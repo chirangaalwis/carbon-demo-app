@@ -17,7 +17,6 @@ package org.wso2.strategy.miscellaneous.helper;
 
 import org.wso2.strategy.miscellaneous.io.FileOutputThread;
 
-import java.io.File;
 import java.util.List;
 
 /**
@@ -69,8 +68,8 @@ public class CarbonKernelHandlerHelper {
      * @param filePath path to the file to which content are to be written
      * @param data     content to be written to the file
      */
-    public static void writeToFile(File filePath, List<String> data) {
-        FileOutputThread outputThread = new FileOutputThread(filePath.getAbsolutePath(), data);
+    public static void writeToFile(String filePath, List<String> data) {
+        FileOutputThread outputThread = new FileOutputThread(filePath, data);
         outputThread.run();
     }
 }

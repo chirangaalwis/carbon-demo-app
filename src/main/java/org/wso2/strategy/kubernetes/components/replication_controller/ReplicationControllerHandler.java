@@ -40,16 +40,16 @@ public class ReplicationControllerHandler implements IReplicationControllerHandl
         client = new KubernetesClient(new KubernetesFactory(kubernetesURI));
     }
 
-    public void createReplicationController(String controllerName, String podLabel, String tomcatDockerImageName,
+    public void createReplicationController(String controllerName, String podLabel, String dockerImageName,
             int numberOfReplicas) throws CarbonKernelHandlerException {
         try {
-            if ((controllerName != null) && (podLabel != null) && (tomcatDockerImageName != null)) {
+            if ((controllerName != null) && (podLabel != null) && (dockerImageName != null)) {
                 ReplicationController controller = client.getReplicationController(controllerName);
                 if (controller == null) {
                     if (LOG.isDebugEnabled()) {
                         String message = String.format("Creating Kubernetes replication controller"
                                         + " [controller-name] %s [pod-label] %s " + "[pod-Docker-image-name] %s",
-                                controllerName, podLabel, tomcatDockerImageName);
+                                controllerName, podLabel, dockerImageName);
                         LOG.debug(message);
                     }
                     ReplicationController replicationController = new ReplicationController();
@@ -69,7 +69,7 @@ public class ReplicationControllerHandler implements IReplicationControllerHandl
 
                     List<Container> podContainers = new ArrayList<>();
                     Container container = new Container();
-                    container.setImage(tomcatDockerImageName);
+                    container.setImage(dockerImageName);
                     container.setName(podLabel);
                     podContainers.add(container);
                     podSpec.setContainers(podContainers);
@@ -95,7 +95,7 @@ public class ReplicationControllerHandler implements IReplicationControllerHandl
                     if (LOG.isDebugEnabled()) {
                         String message = String.format("Created Kubernetes replication controller"
                                         + " [controller-name] %s [pod-label] %s " + "[pod-Docker-image-name] %s",
-                                controllerName, podLabel, tomcatDockerImageName);
+                                controllerName, podLabel, dockerImageName);
                         LOG.debug(message);
                     }
                 }
@@ -158,17 +158,17 @@ public class ReplicationControllerHandler implements IReplicationControllerHandl
         }
     }
 
-    public void updateImage(String controllerName, String dockerImage) throws CarbonKernelHandlerException {
+    public void updateImage(String controllerName, String dockerImageName) throws CarbonKernelHandlerException {
         if (controllerName != null) {
             ReplicationController replicationController = client.getReplicationController(controllerName);
             final int imageIndex = 0;
             try {
                 if (replicationController != null) {
-                    if (dockerImage != null) {
+                    if (dockerImageName != null) {
                         List<Container> podContainers = replicationController.getSpec().getTemplate().getSpec()
                                 .getContainers();
                         if ((podContainers != null) && (podContainers.size() > 0)) {
-                            podContainers.get(imageIndex).setImage(dockerImage);
+                            podContainers.get(imageIndex).setImage(dockerImageName);
                         }
                         client.updateReplicationController(controllerName, replicationController);
                     }
@@ -185,7 +185,8 @@ public class ReplicationControllerHandler implements IReplicationControllerHandl
         }
     }
 
-    public ReplicationController deleteReplicationController(String controllerName) throws CarbonKernelHandlerException {
+    public ReplicationController deleteReplicationController(String controllerName)
+            throws CarbonKernelHandlerException {
         if (controllerName != null) {
             ReplicationController replicationController = client.getReplicationController(controllerName);
             try {

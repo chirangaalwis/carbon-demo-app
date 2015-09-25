@@ -15,6 +15,14 @@
             </includes>
         </fileSet>
         <fileSet>
+            <directory>${project.basedir}/src/main/resources</directory>
+            <outputDirectory>/artifact</outputDirectory>
+            <fileMode>0755</fileMode>
+            <includes>
+                <include>wso2carbon-kernel-5.0.0-SNAPSHOT.zip</include>
+            </includes>
+        </fileSet>
+        <fileSet>
             <directory>${project.basedir}</directory>
             <outputDirectory>/</outputDirectory>
             <fileMode>0600</fileMode>

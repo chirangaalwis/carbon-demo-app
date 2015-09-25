@@ -16,7 +16,6 @@
 package org.wso2.strategy.kubernetes.constants;
 
 public class KubernetesConstantsExtended {
-    public static final String POD_COMPONENT_KIND = "Pod";
     public static final String REPLICATION_CONTROLLER_COMPONENT_KIND = "ReplicationController";
     public static final String LABEL_NAME = "name";
     public static final int NODE_PORT_LOWER_LIMIT = 30000;

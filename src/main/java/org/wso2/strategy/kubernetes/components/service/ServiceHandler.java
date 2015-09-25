@@ -25,8 +25,8 @@ import org.apache.stratos.kubernetes.client.interfaces.KubernetesAPIClientInterf
 import org.wso2.strategy.kubernetes.components.service.interfaces.IServiceHandler;
 import org.wso2.strategy.kubernetes.constants.KubernetesConstantsExtended;
 import org.wso2.strategy.miscellaneous.exception.CarbonKernelHandlerException;
+import org.wso2.strategy.miscellaneous.helper.CarbonKernelHandlerHelper;
 import org.wso2.strategy.miscellaneous.io.FileInputSingletonDataThread;
-import org.wso2.strategy.miscellaneous.io.FileOutputThread;
 
 import java.net.InetAddress;
 import java.util.ArrayList;
@@ -47,7 +47,6 @@ public class ServiceHandler implements IServiceHandler {
         if (serviceId != null) {
             try {
                 Service service = client.getService(serviceId);
-                FileOutputThread fileOutput;
                 if (service == null) {
                     if (LOG.isDebugEnabled()) {
                         String message = String
@@ -71,13 +70,11 @@ public class ServiceHandler implements IServiceHandler {
                     } else {
                         nodePortValue = KubernetesConstantsExtended.NODE_PORT_LOWER_LIMIT + 1;
                     }
-
                     // write the next possible port allocation value to a text file
                     List<String> output = new ArrayList<>();
                     output.add("" + nodePortValue);
-                    fileOutput = new FileOutputThread(KubernetesConstantsExtended.NODE_PORT_ALLOCATION_FILENAME,
-                            output);
-                    fileOutput.run();
+                    CarbonKernelHandlerHelper
+                            .writeToFile(KubernetesConstantsExtended.NODE_PORT_ALLOCATION_FILENAME, output);
                 }
             } catch (Exception exception) {
                 String message = String.format("Could not create the service[service-identifier]: " + "%s", serviceId);

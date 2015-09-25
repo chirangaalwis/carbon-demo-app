@@ -18,8 +18,8 @@ package org.wso2.strategy;
 import org.wso2.strategy.carbon5.CarbonKernelHandler;
 import org.wso2.strategy.carbon5.interfaces.ICarbonKernelHandler;
 import org.wso2.strategy.miscellaneous.exception.CarbonKernelHandlerException;
+import org.wso2.strategy.miscellaneous.helper.CarbonKernelHandlerHelper;
 import org.wso2.strategy.miscellaneous.io.FileInputKeyValueDataThread;
-import org.wso2.strategy.miscellaneous.io.FileOutputThread;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -27,15 +27,17 @@ import java.nio.file.Paths;
 import java.util.*;
 
 public class Executor {
+    private static final int KUBERNETES_CONTAINER_CREATION_DELAY_IN_MILLISECONDS = 10000;
     private static final Scanner SCANNER = new Scanner(System.in);
     private static final String CONFIGURATION_FILE = "client_configuration.txt";
 
     public static void main(String[] args) {
         try {
+            Thread.sleep(KUBERNETES_CONTAINER_CREATION_DELAY_IN_MILLISECONDS);
             Map<String, String> configurationData = getClientConfigurationData();
             final ICarbonKernelHandler kernelHandlerHandler = new CarbonKernelHandler(
                     configurationData.get("docker-url"), configurationData.get("kubernetes-url"));
-            final String welcomeMessage = "***WELCOME TO JAVA WEB ARTIFACT HANDLER APP***\n\n";
+            final String welcomeMessage = "***WELCOME TO WSO2 CARBON-KERNEL HANDLER APP***\n\n";
             final String mainMenuContent = "1 - Deploy\n2 - Rolling update\n3 - Un-deploy\n4 - Scaling\n5 - Exit\nEnter your choice: ";
             showMenu(welcomeMessage);
             while (true) {
@@ -50,55 +52,60 @@ public class Executor {
                 process(userChoice, kernelHandlerHandler);
             }
         } catch (Exception exception) {
+            exception.printStackTrace();
             System.exit(1);
         }
     }
 
-    private static void process(int choice, ICarbonKernelHandler kernelHandler) throws CarbonKernelHandlerException {
+    private static void process(int choice, ICarbonKernelHandler kernelHandler) {
         Map<String, Object> inputs;
         String tenant;
         int replicas;
-        switch (choice) {
-        case 1:
-            inputs = gatherDeploymentData();
-            tenant = (String) (inputs.get("tenant"));
-            replicas = (Integer) (inputs.get("replicas"));
-            boolean deployed = kernelHandler.deploy(tenant, replicas);
-            if (deployed) {
-                showMenu(kernelHandler.getServiceAccessIPs(tenant));
-            } else {
-                showMenu("This web artifact has already been deployed. Please use a "
-                        + "rolling update to make an updated deployment.\n");
+        try {
+            switch (choice) {
+            case 1:
+                inputs = gatherDeploymentData();
+                tenant = (String) (inputs.get("tenant"));
+                replicas = (Integer) (inputs.get("replicas"));
+                boolean deployed = kernelHandler.deploy(tenant, replicas);
+                if (deployed) {
+                    showMenu(kernelHandler.getServiceAccessIPs(tenant));
+                } else {
+                    showMenu("This web artifact has already been deployed. Please use a "
+                            + "rolling update to make an updated deployment.\n");
+                }
+                break;
+            case 2:
+                tenant = gatherTenantData();
+                deployed = kernelHandler.rollUpdate(tenant);
+                if (deployed) {
+                    showMenu(kernelHandler.getServiceAccessIPs(tenant));
+                } else {
+                    showMenu("This web artifact version has not been deployed, before. "
+                            + "Please deploy the artifact version, before making an updated deployment.\n");
+                }
+                break;
+            case 3:
+                tenant = gatherTenantData();
+                boolean removed = kernelHandler.remove(tenant);
+                if (!removed) {
+                    showMenu("No such web artifact is currently running.\n");
+                }
+                break;
+            case 4:
+                inputs = gatherScalingData(kernelHandler);
+                tenant = (String) (inputs.get("tenant"));
+                replicas = (Integer) (inputs.get("replicas"));
+                if (replicas > 0) {
+                    kernelHandler.scale(tenant, replicas);
+                }
+                break;
+            case 5:
+                System.exit(0);
+                break;
             }
-            break;
-        case 2:
-            tenant = gatherTenantData();
-            deployed = kernelHandler.rollUpdate(tenant);
-            if (deployed) {
-                showMenu(kernelHandler.getServiceAccessIPs(tenant));
-            } else {
-                showMenu("This web artifact version has not been deployed, before. "
-                        + "Please deploy the artifact version, before making an updated deployment.\n");
-            }
-            break;
-        case 3:
-            tenant = gatherTenantData();
-            boolean removed = kernelHandler.remove(tenant);
-            if (!removed) {
-                showMenu("No such web artifact is currently running.\n");
-            }
-            break;
-        case 4:
-            inputs = gatherScalingData(kernelHandler);
-            tenant = (String) (inputs.get("tenant"));
-            replicas = (Integer) (inputs.get("replicas"));
-            if (replicas > 0) {
-                kernelHandler.scale(tenant, replicas);
-            }
-            break;
-        case 5:
-            System.exit(0);
-            break;
+        } catch (CarbonKernelHandlerException exception) {
+            showMenu("The program has encountered an error.\n");
         }
     }
 
@@ -175,8 +182,7 @@ public class Executor {
         // sets the default client configuration data
         configurationData.add("docker-url=unix:///var/run/docker.sock");
         configurationData.add("kubernetes-url=http://127.0.0.1:8080");
-        FileOutputThread outputThread = new FileOutputThread(CONFIGURATION_FILE, configurationData);
-        outputThread.run();
+        CarbonKernelHandlerHelper.writeToFile(CONFIGURATION_FILE, configurationData);
     }
 
     private static Map<String, String> getClientConfigurationData() {
