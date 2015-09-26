@@ -29,6 +29,7 @@ import org.wso2.strategy.miscellaneous.exception.CarbonKernelHandlerException;
 import org.wso2.strategy.miscellaneous.helper.CarbonKernelHandlerHelper;
 
 import java.io.File;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
@@ -46,15 +47,15 @@ public class CarbonKernelHandler implements ICarbonKernelHandler {
         serviceHandler = new ServiceHandler(kubernetesEndpointURL);
     }
 
-    public boolean deploy(String tenant, int replicas) throws CarbonKernelHandlerException {
+    public boolean deploy(String tenant, Path kernelPath, String buildVersion, int replicas)
+            throws CarbonKernelHandlerException {
         String componentName = CarbonKernelHandlerHelper
                 .generateKubernetesComponentIdentifier(tenant, CarbonKernelHandlerConstants.ARTIFACT_NAME);
         try {
             if (replicationControllerHandler.getReplicationController(componentName) == null) {
-                if (imageBuilder.getExistingImages(tenant, CarbonKernelHandlerConstants.ARTIFACT_NAME,
-                        CarbonKernelHandlerConstants.CARBON_KERNEL_ARTIFACT_VERSION).size() == 0) {
-                    String dockerImageName = buildCarbonDockerImage(tenant,
-                            CarbonKernelHandlerConstants.CARBON_KERNEL_ARTIFACT_VERSION);
+                if (imageBuilder.getExistingImages(tenant, CarbonKernelHandlerConstants.ARTIFACT_NAME, buildVersion)
+                        .size() == 0) {
+                    String dockerImageName = buildCarbonDockerImage(tenant, kernelPath, buildVersion);
                     Thread.sleep(CarbonKernelHandlerConstants.IMAGE_BUILD_DELAY_IN_MILLISECONDS);
                     replicationControllerHandler
                             .createReplicationController(componentName, componentName, dockerImageName, replicas);
@@ -73,21 +74,19 @@ public class CarbonKernelHandler implements ICarbonKernelHandler {
         }
     }
 
-    public boolean rollUpdate(String tenant) throws CarbonKernelHandlerException {
+    public boolean rollUpdate(String tenant, Path kernelPath, String buildVersion) throws CarbonKernelHandlerException {
         try {
             String componentName = CarbonKernelHandlerHelper
                     .generateKubernetesComponentIdentifier(tenant, CarbonKernelHandlerConstants.ARTIFACT_NAME);
-            boolean artifactsExist = (imageBuilder.getExistingImages(tenant, CarbonKernelHandlerConstants.ARTIFACT_NAME,
-                    CarbonKernelHandlerConstants.CARBON_KERNEL_ARTIFACT_VERSION).size() > 0);
+            boolean artifactsExist = (
+                    imageBuilder.getExistingImages(tenant, CarbonKernelHandlerConstants.ARTIFACT_NAME, buildVersion)
+                            .size() > 0);
             boolean deployed = (replicationControllerHandler.getReplicationController(componentName) != null);
             if (artifactsExist && deployed) {
-                String dockerImageName = buildCarbonDockerImage(tenant,
-                        CarbonKernelHandlerConstants.CARBON_KERNEL_ARTIFACT_VERSION);
+                String dockerImageName = buildCarbonDockerImage(tenant, kernelPath, buildVersion);
                 replicationControllerHandler.updateImage(componentName, dockerImageName);
-                int currentPodNumber = replicationControllerHandler.getNoOfReplicas(componentName);
-                scale(tenant, 0);
-                Thread.sleep(CarbonKernelHandlerConstants.POD_SCALE_DELAY_IN_MILLISECONDS);
-                scale(tenant, currentPodNumber);
+                replicationControllerHandler
+                        .deleteReplicaPods(componentName, tenant, CarbonKernelHandlerConstants.ARTIFACT_NAME);
                 return true;
             } else {
                 return false;
@@ -109,8 +108,9 @@ public class CarbonKernelHandler implements ICarbonKernelHandler {
         String componentName = CarbonKernelHandlerHelper
                 .generateKubernetesComponentIdentifier(tenant, CarbonKernelHandlerConstants.ARTIFACT_NAME);
         String ipMessage;
-        ipMessage = String.format("Cluster IP: %s\nPublic IP: %s\n\n", serviceHandler.getClusterIP(componentName),
-                serviceHandler.getNodePortIP(componentName));
+        ipMessage = String.format("Cluster IP: %s/%s\nPublic IP: %s/%s\n\n", serviceHandler.getClusterIP(componentName),
+                CarbonKernelHandlerConstants.INDEX_PAGE, serviceHandler.getNodePortIP(componentName),
+                CarbonKernelHandlerConstants.INDEX_PAGE);
         return ipMessage;
     }
 
@@ -145,32 +145,42 @@ public class CarbonKernelHandler implements ICarbonKernelHandler {
         }
     }
 
-    private String buildCarbonDockerImage(String tenant, String version) throws CarbonKernelHandlerException {
-        List<String> dockerFileContent = setDockerFileContent();
-        CarbonKernelHandlerHelper.writeToFile(System.getProperty("user.dir") + CarbonKernelHandlerConstants.DOCKERFILE_PATH, dockerFileContent);
+    private String buildCarbonDockerImage(String tenant, Path artifact, String version)
+            throws CarbonKernelHandlerException {
+        String kernelArtifact = artifact.getFileName().toString();
+        List<String> dockerFileContent = setDockerFileContent(kernelArtifact);
+
+        Path parentDirectory = artifact.getParent();
+        File dockerFile;
+        if (parentDirectory != null) {
+            String parentDirectoryPath = parentDirectory.toString();
+            dockerFile = new File(parentDirectoryPath + File.separator + "Dockerfile");
+        } else {
+            dockerFile = new File("Dockerfile");
+        }
+        CarbonKernelHandlerHelper.writeToFile(dockerFile.getAbsolutePath(), dockerFileContent);
         DateTime dateTime = new DateTime();
         String now =
                 dateTime.getYear() + "-" + dateTime.getMonthOfYear() + "-" + dateTime.getDayOfMonth() + "-" + dateTime
                         .getMillisOfDay();
         version += ("-" + now);
         return imageBuilder.buildImage(tenant, CarbonKernelHandlerConstants.ARTIFACT_NAME, version,
-                Paths.get(CarbonKernelHandlerConstants.DOCKERFILE_PATH));
+                Paths.get(dockerFile.getAbsolutePath()));
     }
 
-    private List<String> setDockerFileContent() throws CarbonKernelHandlerException {
+    private List<String> setDockerFileContent(String kernelArtifact) throws CarbonKernelHandlerException {
         List<String> dockerFileContent = new ArrayList<>();
         try {
-            File kernelArtifact = new File(CarbonKernelHandlerConstants.CARBON_KERNEL_ARTIFACT + ".zip");
             dockerFileContent.add("FROM java:openjdk-8");
             dockerFileContent.add("MAINTAINER dev@wso2.org");
             //        dockerFileContent.add("ENV WSO2_SOFT_VER=" + CarbonKernelHandlerConstants.CARBON_KERNEL_VERSION);
             dockerFileContent.add("ADD " + kernelArtifact + " /opt/");
-            dockerFileContent.add("RUN  \\\n\tmkdir -p /opt && \\\nunzip /opt/"
-                    + CarbonKernelHandlerConstants.CARBON_KERNEL_ARTIFACT + ".zip -d /opt && \\\nrm /opt/"
-                    + CarbonKernelHandlerConstants.CARBON_KERNEL_ARTIFACT + ".zip");
+            dockerFileContent
+                    .add("RUN  \\\n\tmkdir -p /opt && \\\nunzip /opt/" + kernelArtifact + " -d /opt && \\\nrm /opt/"
+                            + kernelArtifact + "");
             dockerFileContent.add("# Carbon https port\nEXPOSE 9443");
             dockerFileContent.add("ENV JAVA_HOME=/usr");
-            dockerFileContent.add("ENTRYPOINT [\"/opt/" + CarbonKernelHandlerConstants.CARBON_KERNEL_ARTIFACT
+            dockerFileContent.add("ENTRYPOINT [\"/opt/" + kernelArtifact.substring(0, kernelArtifact.length() - 4)
                     + "/bin/wso2server.sh\"]");
         } catch (Exception exception) {
             String message = "Failed to create the WSO2-Carbon kernel artifact Docker Image.";

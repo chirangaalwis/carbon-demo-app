@@ -10,4 +10,4 @@ Follow the steps below to run the application:
 1. Pull the wso2-carbon5-demo-app repo and perform a Maven build (jdk version 1.7)
 2. Obtain the wso2-carbon5-demo-app/target/carbon5-poc-1.0-SNAPSHOT.zip file
 3. Unzip the carbon5-poc-1.0-SNAPSHOT.zip.
-4. Run /bin/web-app-handler-extension.sh.
+4. Run /bin/carbon-kernel-handler-extension.sh.

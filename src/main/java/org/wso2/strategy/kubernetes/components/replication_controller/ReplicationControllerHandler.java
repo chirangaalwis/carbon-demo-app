@@ -17,6 +17,7 @@ package org.wso2.strategy.kubernetes.components.replication_controller;
 
 import io.fabric8.kubernetes.api.KubernetesClient;
 import io.fabric8.kubernetes.api.KubernetesFactory;
+import io.fabric8.kubernetes.api.KubernetesHelper;
 import io.fabric8.kubernetes.api.model.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -182,6 +183,40 @@ public class ReplicationControllerHandler implements IReplicationControllerHandl
         } else {
             String message = "Replication controller id cannot be null.";
             throw new CarbonKernelHandlerException(message);
+        }
+    }
+
+    public void deleteReplicaPods(String controllerName, String creator, String podArtifactName)
+            throws CarbonKernelHandlerException {
+        try {
+            ReplicationController controller = getReplicationController(controllerName);
+            if (controller != null) {
+                if ((creator != null) && (podArtifactName != null)) {
+                    if (LOG.isDebugEnabled()) {
+                        LOG.debug("Deleting Kubernetes replica pods.");
+                    }
+                    List<Pod> replicaPods = KubernetesHelper
+                            .getPodsForReplicationController(controller, client.getPods().getItems());
+                    for (Pod pod : replicaPods) {
+                        client.deletePod(pod);
+                    }
+                    if (LOG.isDebugEnabled()) {
+                        LOG.debug("Deleted Kubernetes replica pods.");
+                    }
+                } else {
+                    String message = "Could not delete the replica pods. Arguments for creator or/and cannot be null.";
+                    LOG.error(message);
+                    throw new CarbonKernelHandlerException(message);
+                }
+            } else {
+                String message = "Could not delete the replica pods. No such replication controller.";
+                LOG.error(message);
+                throw new CarbonKernelHandlerException(message);
+            }
+        } catch (Exception exception) {
+            String message = "Could not delete the replica pods.";
+            LOG.error(message, exception);
+            throw new CarbonKernelHandlerException(message, exception);
         }
     }
 

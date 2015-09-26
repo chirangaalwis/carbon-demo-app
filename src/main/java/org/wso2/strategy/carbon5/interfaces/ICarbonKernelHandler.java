@@ -17,25 +17,32 @@ package org.wso2.strategy.carbon5.interfaces;
 
 import org.wso2.strategy.miscellaneous.exception.CarbonKernelHandlerException;
 
+import java.nio.file.Path;
+
 public interface ICarbonKernelHandler {
     /**
      * deploys WSO2 Carbon 5 kernel instances
      *
-     * @param tenant   name of the tenant
-     * @param replicas number of deployed replicas of the kernel
+     * @param tenant       name of the tenant
+     * @param replicas     number of deployed replicas of the kernel
+     * @param kernelPath   file system path to the WSO2 Carbon kernel to be deployed
+     * @param buildVersion build version of the WSO2 Carbon kernel deployed
      * @return true if successfully deployed, else false
      * @throws CarbonKernelHandlerException
      */
-    boolean deploy(String tenant, int replicas) throws CarbonKernelHandlerException;
+    boolean deploy(String tenant, Path kernelPath, String buildVersion, int replicas)
+            throws CarbonKernelHandlerException;
 
     /**
      * make a roll update to the newly deployed kernel build
      *
-     * @param tenant name of the tenant
+     * @param tenant       name of the tenant
+     * @param kernelPath   file system path to the WSO2 Carbon kernel to be deployed
+     * @param buildVersion build version of the WSO2 Carbon kernel deployed
      * @return true if successfully updated, else false
      * @throws CarbonKernelHandlerException
      */
-    boolean rollUpdate(String tenant) throws CarbonKernelHandlerException;
+    boolean rollUpdate(String tenant, Path kernelPath, String buildVersion) throws CarbonKernelHandlerException;
 
     /**
      * scale the number of kernel replicas running

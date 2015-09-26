@@ -60,14 +60,18 @@ public class Executor {
     private static void process(int choice, ICarbonKernelHandler kernelHandler) {
         Map<String, Object> inputs;
         String tenant;
+        Path artifactPath;
+        String buildVersion;
         int replicas;
         try {
             switch (choice) {
             case 1:
                 inputs = gatherDeploymentData();
                 tenant = (String) (inputs.get("tenant"));
+                artifactPath = (Path) (inputs.get("artifact"));
+                buildVersion = (String) (inputs.get("version"));
                 replicas = (Integer) (inputs.get("replicas"));
-                boolean deployed = kernelHandler.deploy(tenant, replicas);
+                boolean deployed = kernelHandler.deploy(tenant, artifactPath, buildVersion, replicas);
                 if (deployed) {
                     showMenu(kernelHandler.getServiceAccessIPs(tenant));
                 } else {
@@ -76,8 +80,11 @@ public class Executor {
                 }
                 break;
             case 2:
-                tenant = gatherTenantData();
-                deployed = kernelHandler.rollUpdate(tenant);
+                inputs = gatherIdentifierData();
+                tenant = (String) (inputs.get("tenant"));
+                artifactPath = (Path) (inputs.get("artifact"));
+                buildVersion = (String) (inputs.get("version"));
+                deployed = kernelHandler.rollUpdate(tenant, artifactPath, buildVersion);
                 if (deployed) {
                     showMenu(kernelHandler.getServiceAccessIPs(tenant));
                 } else {
@@ -120,10 +127,40 @@ public class Executor {
         return tenant;
     }
 
-    private static Map<String, Object> gatherDeploymentData() throws CarbonKernelHandlerException {
+    private static Map<String, Object> gatherIdentifierData() throws CarbonKernelHandlerException {
         Map<String, Object> inputs = new HashMap<>();
         String tenant = gatherTenantData();
+
+        Path artifactPath;
+        boolean exists = false;
+        do {
+            showMenu("Artifact path: ");
+            String path = SCANNER.nextLine();
+            artifactPath = Paths.get(path);
+            if (!Files.isDirectory(artifactPath)) {
+                exists = Files.exists(artifactPath);
+            } else {
+                showMenu("The path should not refer to a directory.\n");
+                continue;
+            }
+            if (!exists) {
+                showMenu("This file path does not exist.\n");
+            }
+        } while (!exists);
+
+        showMenu("App version: ");
+        String version = SCANNER.nextLine();
+
+        // Add to list of inputs
         inputs.put("tenant", tenant);
+        inputs.put("artifact", artifactPath);
+        inputs.put("version", version);
+        return inputs;
+    }
+
+    private static Map<String, Object> gatherDeploymentData() throws CarbonKernelHandlerException {
+        Map<String, Object> inputs;
+        inputs = gatherIdentifierData();
 
         int replicas;
         String tempUserChoice;
@@ -133,6 +170,8 @@ public class Executor {
             SCANNER.nextLine();
             replicas = getUserChoice(tempUserChoice);
         } while ((replicas < 1));
+
+        // Add to list of inputs
         inputs.put("replicas", replicas);
         return inputs;
     }
