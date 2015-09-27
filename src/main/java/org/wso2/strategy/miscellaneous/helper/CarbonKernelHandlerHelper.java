@@ -72,4 +72,51 @@ public class CarbonKernelHandlerHelper {
         FileOutputThread outputThread = new FileOutputThread(filePath, data);
         outputThread.run();
     }
+
+    /**
+     * compares two deployed artifact version builds and indicates which version should come before and after
+     *
+     * @param buildIdentifierOne artifact version build one
+     * @param buildIdentifierTwo artifact version build two
+     * @return indicates which version should come before and after
+     */
+    public static int compareBuildVersions(String buildIdentifierOne, String buildIdentifierTwo) {
+        int result;
+        String[] buildIdentifierOneTenantSplit = buildIdentifierOne.split(":");
+        String[] buildIdentifierTwoTenantSplit = buildIdentifierTwo.split(":");
+        String[] buildIdentifierOneIdentifierSplit = buildIdentifierOneTenantSplit[1].split("-");
+        String[] buildIdentifierTwoIdentifierSplit = buildIdentifierTwoTenantSplit[1].split("-");
+        int repoIndex = 0;
+        int versionIndex = 0;
+        int yearIndex = 1;
+        int monthIndex = 2;
+        int dayIndex = 3;
+        String identifierOne =
+                buildIdentifierOneTenantSplit[repoIndex] + ":" + buildIdentifierOneIdentifierSplit[versionIndex] +
+                        "-" + buildIdentifierOneIdentifierSplit[yearIndex] + "-"
+                        + buildIdentifierOneIdentifierSplit[monthIndex] +
+                        "-" + buildIdentifierOneIdentifierSplit[dayIndex];
+        String identifierTwo =
+                buildIdentifierTwoTenantSplit[repoIndex] + ":" + buildIdentifierTwoIdentifierSplit[versionIndex] +
+                        "-" + buildIdentifierTwoIdentifierSplit[yearIndex] + "-"
+                        + buildIdentifierTwoIdentifierSplit[monthIndex] +
+                        "-" + buildIdentifierTwoIdentifierSplit[dayIndex];
+
+        if (identifierOne.compareTo(identifierTwo) < 0) {
+            result = -1;
+        } else if (identifierOne.compareTo(identifierTwo) > 0) {
+            result = 1;
+        } else {
+            long identifierOneTime = Long.parseLong(buildIdentifierOneIdentifierSplit[4]);
+            long identifierTwoTime = Long.parseLong(buildIdentifierTwoIdentifierSplit[4]);
+            if (identifierOneTime < identifierTwoTime) {
+                result = -1;
+            } else if (identifierOneTime > identifierTwoTime) {
+                result = 1;
+            } else {
+                result = 0;
+            }
+        }
+        return result;
+    }
 }

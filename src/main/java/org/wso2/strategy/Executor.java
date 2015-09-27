@@ -38,7 +38,8 @@ public class Executor {
             final ICarbonKernelHandler kernelHandlerHandler = new CarbonKernelHandler(
                     configurationData.get("docker-url"), configurationData.get("kubernetes-url"));
             final String welcomeMessage = "***WELCOME TO WSO2 CARBON-KERNEL HANDLER APP***\n\n";
-            final String mainMenuContent = "1 - Deploy\n2 - Rolling update\n3 - Un-deploy\n4 - Scaling\n5 - Exit\nEnter your choice: ";
+            final String mainMenuContent = "1 - Deploy\n2 - Rolling update\n3 - Rollback\n4 - Scale\n"
+                    + "5 - Un-deploy\n6 - Exit\nEnter your choice: ";
             showMenu(welcomeMessage);
             while (true) {
                 int userChoice;
@@ -48,7 +49,7 @@ public class Executor {
                     tempUserChoice = SCANNER.next();
                     SCANNER.nextLine();
                     userChoice = getUserChoice(tempUserChoice);
-                } while ((userChoice < 1) || (userChoice > 5));
+                } while ((userChoice < 1) || (userChoice > 6));
                 process(userChoice, kernelHandlerHandler);
             }
         } catch (Exception exception) {
@@ -80,7 +81,7 @@ public class Executor {
                 }
                 break;
             case 2:
-                inputs = gatherIdentifierData();
+                inputs = gatherUpdateData();
                 tenant = (String) (inputs.get("tenant"));
                 artifactPath = (Path) (inputs.get("artifact"));
                 buildVersion = (String) (inputs.get("version"));
@@ -93,10 +94,24 @@ public class Executor {
                 }
                 break;
             case 3:
-                tenant = gatherTenantData();
-                boolean removed = kernelHandler.remove(tenant);
-                if (!removed) {
-                    showMenu("No such web artifact is currently running.\n");
+                inputs = gatherIdentifierData();
+                tenant = (String) inputs.get("tenant");
+                buildVersion = (String) inputs.get("version");
+                List<String> displayLowerList = kernelHandler.
+                        listLowerBuildArtifactVersions(tenant, buildVersion);
+                if ((displayLowerList != null) && (displayLowerList.size() > 0)) {
+                    displayList(displayLowerList);
+                    int userChoice;
+                    String tempUserChoice;
+                    do {
+                        showMenu("Enter your choice: ");
+                        tempUserChoice = SCANNER.next();
+                        SCANNER.nextLine();
+                        userChoice = getUserChoice(tempUserChoice);
+                    } while ((userChoice < 1) || (userChoice > displayLowerList.size()));
+                    kernelHandler.rollBack(tenant, buildVersion, getListChoice(displayLowerList, userChoice));
+                } else {
+                    showMenu("No lower web app build versions.\n");
                 }
                 break;
             case 4:
@@ -108,6 +123,13 @@ public class Executor {
                 }
                 break;
             case 5:
+                tenant = gatherTenantData();
+                boolean removed = kernelHandler.remove(tenant);
+                if (!removed) {
+                    showMenu("No such web artifact is currently running.\n");
+                }
+                break;
+            case 6:
                 System.exit(0);
                 break;
             }
@@ -127,15 +149,13 @@ public class Executor {
         return tenant;
     }
 
-    private static Map<String, Object> gatherIdentifierData() throws CarbonKernelHandlerException {
-        Map<String, Object> inputs = new HashMap<>();
-        String tenant = gatherTenantData();
-
+    private static Path gatherArtifactData() {
         Path artifactPath;
+        String path;
         boolean exists = false;
         do {
-            showMenu("Artifact path: ");
-            String path = SCANNER.nextLine();
+            showMenu("Kernel artifact path: ");
+            path = SCANNER.nextLine();
             artifactPath = Paths.get(path);
             if (!Files.isDirectory(artifactPath)) {
                 exists = Files.exists(artifactPath);
@@ -148,19 +168,34 @@ public class Executor {
             }
         } while (!exists);
 
-        showMenu("App version: ");
+        return artifactPath;
+    }
+
+    private static Map<String, Object> gatherIdentifierData() {
+        Map<String, Object> inputs = new HashMap<>();
+        String tenant = gatherTenantData();
+
+        showMenu("Build version: ");
         String version = SCANNER.nextLine();
 
         // Add to list of inputs
         inputs.put("tenant", tenant);
-        inputs.put("artifact", artifactPath);
         inputs.put("version", version);
         return inputs;
     }
 
-    private static Map<String, Object> gatherDeploymentData() throws CarbonKernelHandlerException {
-        Map<String, Object> inputs;
-        inputs = gatherIdentifierData();
+    private static Map<String, Object> gatherUpdateData() {
+        Map<String, Object> inputs = gatherIdentifierData();
+        Path artifactPath = gatherArtifactData();
+
+        // Add to list of inputs
+        inputs.put("artifact", artifactPath);
+        return inputs;
+    }
+
+    private static Map<String, Object> gatherDeploymentData() {
+        Map<String, Object> inputs = gatherIdentifierData();
+        Path artifactPath = gatherArtifactData();
 
         int replicas;
         String tempUserChoice;
@@ -172,6 +207,7 @@ public class Executor {
         } while ((replicas < 1));
 
         // Add to list of inputs
+        inputs.put("artifact", artifactPath);
         inputs.put("replicas", replicas);
         return inputs;
     }
@@ -197,6 +233,22 @@ public class Executor {
             inputs.put("replicas", podLess);
         }
         return inputs;
+    }
+
+    private static void displayList(List<String> data) {
+        if (data != null) {
+            for (int count = 0; count < data.size(); count++) {
+                System.out.print((count + 1) + ". " + data.get(count) + "\n");
+            }
+        }
+    }
+
+    private static String getListChoice(List<String> choices, int choice) {
+        if ((choices != null) && (choice > 0 && choice <= choices.size())) {
+            return choices.get(choice - 1);
+        } else {
+            return null;
+        }
     }
 
     private static int getUserChoice(String input) {

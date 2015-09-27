@@ -15,6 +15,7 @@
 */
 package org.wso2.strategy.carbon5;
 
+import com.google.common.collect.ImmutableList;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.joda.time.DateTime;
@@ -98,20 +99,19 @@ public class CarbonKernelHandler implements ICarbonKernelHandler {
         }
     }
 
-    public int getNoOfReplicas(String tenant) throws CarbonKernelHandlerException {
+    public boolean rollBack(String tenant, String buildVersion, String olderVersion)
+            throws CarbonKernelHandlerException {
         String componentName = CarbonKernelHandlerHelper
                 .generateKubernetesComponentIdentifier(tenant, CarbonKernelHandlerConstants.ARTIFACT_NAME);
-        return replicationControllerHandler.getNoOfReplicas(componentName);
-    }
-
-    public String getServiceAccessIPs(String tenant) throws CarbonKernelHandlerException {
-        String componentName = CarbonKernelHandlerHelper
-                .generateKubernetesComponentIdentifier(tenant, CarbonKernelHandlerConstants.ARTIFACT_NAME);
-        String ipMessage;
-        ipMessage = String.format("Cluster IP: %s/%s\nPublic IP: %s/%s\n\n", serviceHandler.getClusterIP(componentName),
-                CarbonKernelHandlerConstants.INDEX_PAGE, serviceHandler.getNodePortIP(componentName),
-                CarbonKernelHandlerConstants.INDEX_PAGE);
-        return ipMessage;
+        if ((imageBuilder.getExistingImages(tenant, CarbonKernelHandlerConstants.ARTIFACT_NAME, buildVersion).size()
+                > 0)) {
+            replicationControllerHandler.updateImage(componentName, olderVersion);
+            replicationControllerHandler
+                    .deleteReplicaPods(componentName, tenant, CarbonKernelHandlerConstants.ARTIFACT_NAME);
+            return true;
+        } else {
+            return false;
+        }
     }
 
     public boolean scale(String tenant, int noOfReplicas) throws CarbonKernelHandlerException {
@@ -143,6 +143,60 @@ public class CarbonKernelHandler implements ICarbonKernelHandler {
             LOG.error(message, exception);
             throw new CarbonKernelHandlerException(message, exception);
         }
+    }
+
+    public int getNoOfReplicas(String tenant) throws CarbonKernelHandlerException {
+        String componentName = CarbonKernelHandlerHelper
+                .generateKubernetesComponentIdentifier(tenant, CarbonKernelHandlerConstants.ARTIFACT_NAME);
+        return replicationControllerHandler.getNoOfReplicas(componentName);
+    }
+
+    public String getServiceAccessIPs(String tenant) throws CarbonKernelHandlerException {
+        String componentName = CarbonKernelHandlerHelper
+                .generateKubernetesComponentIdentifier(tenant, CarbonKernelHandlerConstants.ARTIFACT_NAME);
+        String ipMessage;
+        ipMessage = String.format("Cluster IP: %s/%s\nPublic IP: %s/%s\n\n", serviceHandler.getClusterIP(componentName),
+                CarbonKernelHandlerConstants.INDEX_PAGE, serviceHandler.getNodePortIP(componentName),
+                CarbonKernelHandlerConstants.INDEX_PAGE);
+        return ipMessage;
+    }
+
+    public List<String> listExistingBuildArtifacts(String tenant, String buildVersion)
+            throws CarbonKernelHandlerException {
+        List<String> artifactList = new ArrayList<>();
+        ImmutableList<String> repoTags;
+        for (int count = 0;
+             count < imageBuilder.getExistingImages(tenant, CarbonKernelHandlerConstants.ARTIFACT_NAME, buildVersion)
+                     .size(); count++) {
+            repoTags = imageBuilder.getExistingImages(tenant, CarbonKernelHandlerConstants.ARTIFACT_NAME, buildVersion)
+                    .get(count).repoTags();
+            for (String tag : repoTags) {
+                if (tag.contains(tenant + "/" + CarbonKernelHandlerConstants.ARTIFACT_NAME + ":" + buildVersion)) {
+                    artifactList.add(tag);
+                }
+            }
+        }
+        return artifactList;
+    }
+
+    public List<String> listLowerBuildArtifactVersions(String tenant, String buildVersion)
+            throws CarbonKernelHandlerException {
+        String componentName = CarbonKernelHandlerHelper
+                .generateKubernetesComponentIdentifier(tenant, CarbonKernelHandlerConstants.ARTIFACT_NAME);
+        List<String> minorArtifactList = new ArrayList<>();
+        final int singleImageIndex = 0;
+        if (replicationControllerHandler.getReplicationController(componentName) != null) {
+            String upperLimitVersion = replicationControllerHandler.getReplicationController(componentName).getSpec()
+                    .getTemplate().getSpec().getContainers().get(singleImageIndex).getImage();
+            List<String> artifactList = listExistingBuildArtifacts(tenant, buildVersion);
+            minorArtifactList = new ArrayList<>();
+            for (String artifactImageBuild : artifactList) {
+                if (CarbonKernelHandlerHelper.compareBuildVersions(upperLimitVersion, artifactImageBuild) > 0) {
+                    minorArtifactList.add(artifactImageBuild);
+                }
+            }
+        }
+        return minorArtifactList;
     }
 
     private String buildCarbonDockerImage(String tenant, Path artifact, String version)
@@ -187,7 +241,6 @@ public class CarbonKernelHandler implements ICarbonKernelHandler {
             LOG.error(message, exception);
             throw new CarbonKernelHandlerException(message, exception);
         }
-
         return dockerFileContent;
     }
 }

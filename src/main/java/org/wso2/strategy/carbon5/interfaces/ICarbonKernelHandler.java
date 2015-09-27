@@ -18,6 +18,7 @@ package org.wso2.strategy.carbon5.interfaces;
 import org.wso2.strategy.miscellaneous.exception.CarbonKernelHandlerException;
 
 import java.nio.file.Path;
+import java.util.List;
 
 public interface ICarbonKernelHandler {
     /**
@@ -45,6 +46,17 @@ public interface ICarbonKernelHandler {
     boolean rollUpdate(String tenant, Path kernelPath, String buildVersion) throws CarbonKernelHandlerException;
 
     /**
+     * rolls back to an existing build version of the currently running kernel artifact build version
+     *
+     * @param tenant       name of the tenant
+     * @param buildVersion build version of the WSO2 Carbon kernel deployed
+     * @param olderVersion identifier of older WSO2 Carbon kernel build to be newly deployed
+     * @return true if successfully updated, else false
+     * @throws CarbonKernelHandlerException
+     */
+    boolean rollBack(String tenant, String buildVersion, String olderVersion) throws CarbonKernelHandlerException;
+
+    /**
      * scale the number of kernel replicas running
      *
      * @param tenant       name of the tenant
@@ -53,6 +65,15 @@ public interface ICarbonKernelHandler {
      * @throws CarbonKernelHandlerException
      */
     boolean scale(String tenant, int noOfReplicas) throws CarbonKernelHandlerException;
+
+    /**
+     * removes the deployed kernel replicas and service of the specified tenant
+     *
+     * @param tenant name of the tenant
+     * @return true if successfully removed, else false
+     * @throws CarbonKernelHandlerException
+     */
+    boolean remove(String tenant) throws CarbonKernelHandlerException;
 
     /**
      * returns the number of kernel replicas a particular tenant is running, currently
@@ -73,11 +94,25 @@ public interface ICarbonKernelHandler {
     String getServiceAccessIPs(String tenant) throws CarbonKernelHandlerException;
 
     /**
-     * removes the deployed kernel replicas and service of the specified tenant
+     * utility method which returns a list of kernel artifact build versions under the specified
+     * repo and version
      *
-     * @param tenant name of the tenant
-     * @return true if successfully removed, else false
+     * @param tenant       name of the tenant
+     * @param buildVersion build version of the WSO2 Carbon kernel deployed
+     * @return a list of web artifact build versions under the specified repo and version
      * @throws CarbonKernelHandlerException
      */
-    boolean remove(String tenant) throws CarbonKernelHandlerException;
+    List<String> listExistingBuildArtifacts(String tenant, String buildVersion) throws CarbonKernelHandlerException;
+
+    /**
+     * returns a list of kernel artifact build sub versions under the specified
+     * repo and version which are lower than the currently running build version
+     *
+     * @param tenant       tenant which deploys the web artifact
+     * @param buildVersion build version of the WSO2 Carbon kernel deployed
+     * @return a list of kernel artifact build sub versions under the specified
+     * repo and version which are lower than the currently running build version
+     * @throws CarbonKernelHandlerException
+     */
+    List<String> listLowerBuildArtifactVersions(String tenant, String buildVersion) throws CarbonKernelHandlerException;
 }
