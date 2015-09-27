@@ -76,7 +76,7 @@ public class Executor {
                 if (deployed) {
                     showMenu(kernelHandler.getServiceAccessIPs(tenant));
                 } else {
-                    showMenu("This web artifact has already been deployed. Please use a "
+                    showMenu("This kernel artifact has already been deployed. Please use a "
                             + "rolling update to make an updated deployment.\n");
                 }
                 break;
@@ -89,7 +89,7 @@ public class Executor {
                 if (deployed) {
                     showMenu(kernelHandler.getServiceAccessIPs(tenant));
                 } else {
-                    showMenu("This web artifact version has not been deployed, before. "
+                    showMenu("This kernel artifact version has not been deployed, before. "
                             + "Please deploy the artifact version, before making an updated deployment.\n");
                 }
                 break;
@@ -111,7 +111,7 @@ public class Executor {
                     } while ((userChoice < 1) || (userChoice > displayLowerList.size()));
                     kernelHandler.rollBack(tenant, buildVersion, getListChoice(displayLowerList, userChoice));
                 } else {
-                    showMenu("No lower web app build versions.\n");
+                    showMenu("No lower kernel build versions.\n");
                 }
                 break;
             case 4:
@@ -126,7 +126,7 @@ public class Executor {
                 tenant = gatherTenantData();
                 boolean removed = kernelHandler.remove(tenant);
                 if (!removed) {
-                    showMenu("No such web artifact is currently running.\n");
+                    showMenu("No such kernel is currently running.\n");
                 }
                 break;
             case 6:
@@ -221,7 +221,7 @@ public class Executor {
         final int podLess = 0;
         int noOfReplicas = kernelHandler.getNoOfReplicas(tenant);
         if (noOfReplicas > 0) {
-            showMenu("Current no. of web artifact replicas running: " + noOfReplicas + "\n");
+            showMenu("Current no. of kernel artifact replicas running: " + noOfReplicas + "\n");
             showMenu("Enter new no. of replicas: ");
             String tempUserChoice = SCANNER.next();
             SCANNER.nextLine();
@@ -229,7 +229,7 @@ public class Executor {
             // Add to list of inputs
             inputs.put("replicas", replicas);
         } else {
-            showMenu("This web artifact has not been deployed yet.\n");
+            showMenu("This kernel artifact has not been deployed yet.\n");
             inputs.put("replicas", podLess);
         }
         return inputs;
