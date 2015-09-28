@@ -13,7 +13,7 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-package org.wso2.strategy.carbon5.interfaces;
+package org.wso2.strategy.carbon.interfaces;
 
 import org.wso2.strategy.miscellaneous.exception.CarbonKernelHandlerException;
 
@@ -22,7 +22,7 @@ import java.util.List;
 
 public interface ICarbonKernelHandler {
     /**
-     * deploys WSO2 Carbon 5 kernel instances
+     * deploys WSO2 Carbon kernel instances
      *
      * @param tenant       name of the tenant
      * @param replicas     number of deployed replicas of the kernel

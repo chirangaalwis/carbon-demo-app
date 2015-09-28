@@ -13,7 +13,7 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-package org.wso2.strategy.carbon5;
+package org.wso2.strategy.carbon;
 
 public class CarbonKernelHandlerConstants {
     protected static final String ARTIFACT_NAME = "carbon";

@@ -15,8 +15,8 @@
 */
 package org.wso2.strategy;
 
-import org.wso2.strategy.carbon5.CarbonKernelHandler;
-import org.wso2.strategy.carbon5.interfaces.ICarbonKernelHandler;
+import org.wso2.strategy.carbon.CarbonKernelHandler;
+import org.wso2.strategy.carbon.interfaces.ICarbonKernelHandler;
 import org.wso2.strategy.miscellaneous.exception.CarbonKernelHandlerException;
 import org.wso2.strategy.miscellaneous.helper.CarbonKernelHandlerHelper;
 import org.wso2.strategy.miscellaneous.io.FileInputKeyValueDataThread;
@@ -76,8 +76,8 @@ public class Executor {
                 if (deployed) {
                     showMenu(kernelHandler.getServiceAccessIPs(tenant));
                 } else {
-                    showMenu("This kernel artifact has already been deployed. Please use a "
-                            + "rolling update to make an updated deployment.\n");
+                    showMenu("This tenant has deployed a kernel artifact, already. Please use a rolling update "
+                            + "to make an updated deployment.\n");
                 }
                 break;
             case 2:
@@ -89,8 +89,9 @@ public class Executor {
                 if (deployed) {
                     showMenu(kernelHandler.getServiceAccessIPs(tenant));
                 } else {
-                    showMenu("This kernel artifact version has not been deployed, before. "
-                            + "Please deploy the artifact version, before making an updated deployment.\n");
+                    showMenu("Cannot make an update. This tenant may not have deployed a kernel artifact, "
+                            + "currently or a previous build version of the above artifact may not "
+                            + "have been deployed.\n");
                 }
                 break;
             case 3:

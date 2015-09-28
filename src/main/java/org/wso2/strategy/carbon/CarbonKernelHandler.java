@@ -13,13 +13,13 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-package org.wso2.strategy.carbon5;
+package org.wso2.strategy.carbon;
 
 import com.google.common.collect.ImmutableList;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.joda.time.DateTime;
-import org.wso2.strategy.carbon5.interfaces.ICarbonKernelHandler;
+import org.wso2.strategy.carbon.interfaces.ICarbonKernelHandler;
 import org.wso2.strategy.docker.JavaDockerImageHandler;
 import org.wso2.strategy.docker.interfaces.IDockerImageHandler;
 import org.wso2.strategy.kubernetes.components.replication_controller.ReplicationControllerHandler;
@@ -53,18 +53,14 @@ public class CarbonKernelHandler implements ICarbonKernelHandler {
         String componentName = CarbonKernelHandlerHelper
                 .generateKubernetesComponentIdentifier(tenant, CarbonKernelHandlerConstants.ARTIFACT_NAME);
         try {
-            if (replicationControllerHandler.getReplicationController(componentName) == null) {
-                if (imageBuilder.getExistingImages(tenant, CarbonKernelHandlerConstants.ARTIFACT_NAME, buildVersion)
-                        .size() == 0) {
-                    String dockerImageName = buildCarbonDockerImage(tenant, kernelPath, buildVersion);
-                    Thread.sleep(CarbonKernelHandlerConstants.IMAGE_BUILD_DELAY_IN_MILLISECONDS);
-                    replicationControllerHandler
-                            .createReplicationController(componentName, componentName, dockerImageName, replicas);
-                    serviceHandler.createService(componentName, componentName);
-                    return true;
-                } else {
-                    return false;
-                }
+            boolean notDeployed = (replicationControllerHandler.getReplicationController(componentName) == null);
+            if (notDeployed) {
+                String dockerImageName = buildCarbonDockerImage(tenant, kernelPath, buildVersion);
+                Thread.sleep(CarbonKernelHandlerConstants.IMAGE_BUILD_DELAY_IN_MILLISECONDS);
+                replicationControllerHandler
+                        .createReplicationController(componentName, componentName, dockerImageName, replicas);
+                serviceHandler.createService(componentName, componentName);
+                return true;
             } else {
                 return false;
             }
