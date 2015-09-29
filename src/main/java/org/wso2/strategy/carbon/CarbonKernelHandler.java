@@ -20,7 +20,9 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.joda.time.DateTime;
 import org.wso2.strategy.carbon.interfaces.ICarbonKernelHandler;
+import org.wso2.strategy.docker.configuration.DockerClientBuilder;
 import org.wso2.strategy.docker.JavaDockerImageHandler;
+import org.wso2.strategy.docker.ContainerStatusChecker;
 import org.wso2.strategy.docker.interfaces.IDockerImageHandler;
 import org.wso2.strategy.kubernetes.components.replication_controller.ReplicationControllerHandler;
 import org.wso2.strategy.kubernetes.components.replication_controller.interfaces.IReplicationControllerHandler;
@@ -33,7 +35,9 @@ import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class CarbonKernelHandler implements ICarbonKernelHandler {
     private final IDockerImageHandler imageBuilder;
@@ -42,10 +46,19 @@ public class CarbonKernelHandler implements ICarbonKernelHandler {
 
     private static final Log LOG = LogFactory.getLog(CarbonKernelHandler.class);
 
-    public CarbonKernelHandler(String dockerEndpointURL, String kubernetesEndpointURL) {
-        imageBuilder = new JavaDockerImageHandler(dockerEndpointURL);
-        replicationControllerHandler = new ReplicationControllerHandler(kubernetesEndpointURL);
-        serviceHandler = new ServiceHandler(kubernetesEndpointURL);
+    public CarbonKernelHandler(String dockerEndpointURL, String kubernetesEndpointURL)
+            throws CarbonKernelHandlerException {
+        final ContainerStatusChecker statusChecker = new ContainerStatusChecker(
+                DockerClientBuilder.buildDockerClient(dockerEndpointURL));
+        if (statusChecker.checkContainerExistence(getContainerCmdImagePairs())) {
+            imageBuilder = new JavaDockerImageHandler(DockerClientBuilder.buildDockerClient(dockerEndpointURL));
+            replicationControllerHandler = new ReplicationControllerHandler(kubernetesEndpointURL);
+            serviceHandler = new ServiceHandler(kubernetesEndpointURL);
+        } else {
+            String message = "Cannot start the application. Failed to start Docker Containers required for running Kubernetes.";
+            LOG.error(message);
+            throw new CarbonKernelHandlerException(message);
+        }
     }
 
     public boolean deploy(String tenant, Path kernelPath, String buildVersion, int replicas)
@@ -238,5 +251,20 @@ public class CarbonKernelHandler implements ICarbonKernelHandler {
             throw new CarbonKernelHandlerException(message, exception);
         }
         return dockerFileContent;
+    }
+
+    private Map<String, String> getContainerCmdImagePairs() {
+        Map<String, String> containerCmdImagePairs = new HashMap<>();
+
+        containerCmdImagePairs.put("/hyperkube scheduler", "gcr.io/google_containers/hyperkube:v1.0.1");
+        containerCmdImagePairs.put("/hyperkube apiserver", "gcr.io/google_containers/hyperkube:v1.0.1");
+        containerCmdImagePairs.put("/hyperkube controlle", "gcr.io/google_containers/hyperkube:v1.0.1");
+        containerCmdImagePairs.put("/pause", "gcr.io/google_containers/pause:0.8.0");
+        containerCmdImagePairs.put("/usr/bin/cadvisor", "google/cadvisor:latest");
+        containerCmdImagePairs.put("/hyperkube proxy --m", "gcr.io/google_containers/hyperkube:v1.0.1");
+        containerCmdImagePairs.put("/hyperkube kubelet -", "gcr.io/google_containers/hyperkube:v1.0.1");
+        containerCmdImagePairs.put("/usr/local/bin/etcd ", "gcr.io/google_containers/etcd:2.0.9");
+
+        return containerCmdImagePairs;
     }
 }

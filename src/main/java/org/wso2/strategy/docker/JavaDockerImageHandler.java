@@ -15,7 +15,6 @@
 */
 package org.wso2.strategy.docker;
 
-import com.spotify.docker.client.DefaultDockerClient;
 import com.spotify.docker.client.DockerClient;
 import com.spotify.docker.client.messages.Image;
 import org.apache.logging.log4j.LogManager;
@@ -35,11 +34,11 @@ public class JavaDockerImageHandler implements IDockerImageHandler {
     private final DockerClient dockerClient;
     private static final Logger LOG = LogManager.getLogger(JavaDockerImageHandler.class);
 
-    public JavaDockerImageHandler(String dockerEndpointURI) {
+    public JavaDockerImageHandler(DockerClient client) {
         if (LOG.isDebugEnabled()) {
             LOG.debug("Creating a new DockerClient.");
         }
-        dockerClient = DefaultDockerClient.builder().uri(dockerEndpointURI).build();
+        dockerClient = client;
         if (LOG.isDebugEnabled()) {
             LOG.debug(String.format("Created a new DockerClient[docker-client]: %s.", dockerClient));
         }
