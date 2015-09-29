@@ -28,6 +28,9 @@ public class DockerClientBuilder {
     private static final Logger LOG = LogManager.getLogger(DockerClientBuilder.class);
 
     public static DockerClient buildDockerClient(String dockerEndPointUrl) throws CarbonKernelHandlerException {
+        /*
+        implements the singleton design pattern on the DockerClient instance
+         */
         try {
             if (DOCKER_CLIENT == null) {
                 if (dockerEndPointUrl == null) {

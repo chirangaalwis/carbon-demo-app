@@ -39,6 +39,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * a Java class which implements ICarbonKernelHandler Java interface
+ */
 public class CarbonKernelHandler implements ICarbonKernelHandler {
     private final IDockerImageHandler imageBuilder;
     private final IReplicationControllerHandler replicationControllerHandler;

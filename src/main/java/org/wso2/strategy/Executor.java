@@ -27,13 +27,11 @@ import java.nio.file.Paths;
 import java.util.*;
 
 public class Executor {
-    //    private static final int KUBERNETES_CONTAINER_CREATION_DELAY_IN_MILLISECONDS = 10000;
     private static final Scanner SCANNER = new Scanner(System.in);
     private static final String CONFIGURATION_FILE = "client_configuration.txt";
 
     public static void main(String[] args) {
         try {
-            //            Thread.sleep(KUBERNETES_CONTAINER_CREATION_DELAY_IN_MILLISECONDS);
             Map<String, String> configurationData = getClientConfigurationData();
             final ICarbonKernelHandler kernelHandlerHandler = new CarbonKernelHandler(
                     configurationData.get("docker-url"), configurationData.get("kubernetes-url"));
