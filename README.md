@@ -5,6 +5,8 @@ Uses the https://github.com/spotify/docker-client repo for Docker image handling
 
 This Java IntelliJ IDEA project has been packaged using the maven-assembly-plugin.
 
+Before running the application make sure you have Docker and Google Kubernetes set up in your machine.
+
 Follow the steps below to run the application:
 
 1. Pull the wso2-carbon5-demo-app repo and perform a Maven build (jdk version 1.7)
