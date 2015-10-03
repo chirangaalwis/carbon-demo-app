@@ -17,6 +17,9 @@ package org.wso2.strategy.miscellaneous.helper;
 
 import org.wso2.strategy.miscellaneous.io.FileOutputThread;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -79,42 +82,48 @@ public class CarbonKernelHandlerHelper {
      * @param buildIdentifierOne artifact version build one
      * @param buildIdentifierTwo artifact version build two
      * @return indicates which version should come before and after
+     * @throws ParseException
      */
-    public static int compareBuildVersions(String buildIdentifierOne, String buildIdentifierTwo) {
+    public static int compareBuildVersions(String buildIdentifierOne, String buildIdentifierTwo) throws ParseException {
+        final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
         int result;
-        String[] buildIdentifierOneTenantSplit = buildIdentifierOne.split(":");
-        String[] buildIdentifierTwoTenantSplit = buildIdentifierTwo.split(":");
-        String[] buildIdentifierOneIdentifierSplit = buildIdentifierOneTenantSplit[1].split("-");
-        String[] buildIdentifierTwoIdentifierSplit = buildIdentifierTwoTenantSplit[1].split("-");
-        int repoIndex = 0;
-        int versionIndex = 0;
-        int yearIndex = 1;
-        int monthIndex = 2;
-        int dayIndex = 3;
-        String identifierOne =
-                buildIdentifierOneTenantSplit[repoIndex] + ":" + buildIdentifierOneIdentifierSplit[versionIndex] +
-                        "-" + buildIdentifierOneIdentifierSplit[yearIndex] + "-"
-                        + buildIdentifierOneIdentifierSplit[monthIndex] +
-                        "-" + buildIdentifierOneIdentifierSplit[dayIndex];
-        String identifierTwo =
-                buildIdentifierTwoTenantSplit[repoIndex] + ":" + buildIdentifierTwoIdentifierSplit[versionIndex] +
-                        "-" + buildIdentifierTwoIdentifierSplit[yearIndex] + "-"
-                        + buildIdentifierTwoIdentifierSplit[monthIndex] +
-                        "-" + buildIdentifierTwoIdentifierSplit[dayIndex];
+        String[] buildIdentifierOneSplit = buildIdentifierOne.split("-");
+        String[] buildIdentifierTwoSplit = buildIdentifierTwo.split("-");
+        final int artifactIndex = 0;
+        final int yearIndex = 1;
+        final int monthIndex = 2;
+        final int dayIndex = 3;
+        final int timeIndex = 4;
+
+        String identifierOne = buildIdentifierOneSplit[artifactIndex];
+        Date identifierOneDate = dateFormat
+                .parse(buildIdentifierOneSplit[yearIndex] + "-" + buildIdentifierOneSplit[monthIndex] + "-"
+                        + buildIdentifierOneSplit[dayIndex]);
+
+        String identifierTwo = buildIdentifierTwoSplit[artifactIndex];
+        Date identifierTwoDate = dateFormat
+                .parse(buildIdentifierTwoSplit[yearIndex] + "-" + buildIdentifierTwoSplit[monthIndex] + "-"
+                        + buildIdentifierTwoSplit[dayIndex]);
 
         if (identifierOne.compareTo(identifierTwo) < 0) {
             result = -1;
         } else if (identifierOne.compareTo(identifierTwo) > 0) {
             result = 1;
         } else {
-            long identifierOneTime = Long.parseLong(buildIdentifierOneIdentifierSplit[4]);
-            long identifierTwoTime = Long.parseLong(buildIdentifierTwoIdentifierSplit[4]);
-            if (identifierOneTime < identifierTwoTime) {
+            if (identifierOneDate.before(identifierTwoDate)) {
                 result = -1;
-            } else if (identifierOneTime > identifierTwoTime) {
+            } else if (identifierOneDate.after(identifierTwoDate)) {
                 result = 1;
             } else {
-                result = 0;
+                long identifierOneTime = Long.parseLong(buildIdentifierOneSplit[timeIndex]);
+                long identifierTwoTime = Long.parseLong(buildIdentifierTwoSplit[timeIndex]);
+                if (identifierOneTime < identifierTwoTime) {
+                    result = -1;
+                } else if (identifierOneTime > identifierTwoTime) {
+                    result = 1;
+                } else {
+                    result = 0;
+                }
             }
         }
         return result;

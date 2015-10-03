@@ -22,6 +22,7 @@ import io.fabric8.kubernetes.api.model.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.wso2.strategy.kubernetes.components.replication_controller.interfaces.IReplicationControllerHandler;
+import org.wso2.strategy.kubernetes.configuration.KubernetesClientBuilder;
 import org.wso2.strategy.kubernetes.constants.KubernetesConstantsExtended;
 import org.wso2.strategy.miscellaneous.exception.CarbonKernelHandlerException;
 
@@ -37,8 +38,8 @@ public class ReplicationControllerHandler implements IReplicationControllerHandl
     private final KubernetesClient client;
     private static final Logger LOG = LogManager.getLogger(ReplicationControllerHandler.class);
 
-    public ReplicationControllerHandler(String kubernetesURI) {
-        client = new KubernetesClient(new KubernetesFactory(kubernetesURI));
+    public ReplicationControllerHandler(String kubernetesURI) throws CarbonKernelHandlerException {
+        client = KubernetesClientBuilder.buildDockerClient(kubernetesURI);
     }
 
     public void createReplicationController(String controllerName, String podLabel, String dockerImageName,

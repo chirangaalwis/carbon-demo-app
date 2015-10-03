@@ -34,6 +34,7 @@ import org.wso2.strategy.miscellaneous.helper.CarbonKernelHandlerHelper;
 import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -202,10 +203,16 @@ public class CarbonKernelHandler implements ICarbonKernelHandler {
                     .getTemplate().getSpec().getContainers().get(singleImageIndex).getImage();
             List<String> artifactList = listExistingBuildArtifacts(tenant, buildVersion);
             minorArtifactList = new ArrayList<>();
-            for (String artifactImageBuild : artifactList) {
-                if (CarbonKernelHandlerHelper.compareBuildVersions(upperLimitVersion, artifactImageBuild) > 0) {
-                    minorArtifactList.add(artifactImageBuild);
+            try {
+                for (String artifactImageBuild : artifactList) {
+                    if (CarbonKernelHandlerHelper.compareBuildVersions(upperLimitVersion, artifactImageBuild) > 0) {
+                        minorArtifactList.add(artifactImageBuild);
+                    }
                 }
+            } catch (ParseException exception) {
+                String message = "Failed to list the lower build versions of the WSO2-Carbon kernel.";
+                LOG.error(message, exception);
+                throw new CarbonKernelHandlerException(message, exception);
             }
         }
         return minorArtifactList;
